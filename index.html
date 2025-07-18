@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Habit Breaker</title>
+    <link rel="stylesheet" href="styles.css">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Habit Breaker">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="main-nav">
+            <a href="dashboard.html" class="dashboard-link">📊</a>
+        </nav>
+
+        <!-- Main Screen -->
+        <div class="main-screen" id="mainScreen">
+            <h1>🌟 Habit Breaker</h1>
+            <p>When you feel the urge to indulge in a bad habit, tap the button below. I'll give you a 5-minute activity to redirect your mind and help the craving pass.</p>
+            
+            <button class="craving-btn" onclick="startActivity()" ontouchstart="">
+                🚨 I'm Having a Craving
+            </button>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalSessions">0</div>
+                    <div class="stat-label">Sessions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="totalMinutes">0</div>
+                    <div class="stat-label">Minutes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="streakDays">0</div>
+                    <div class="stat-label">Day Streak</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Screen -->
+        <div class="activity-screen" id="activityScreen">
+            <div class="activity-header">
+                <h2 class="activity-title" id="activityTitle">Take a Deep Breath</h2>
+                <div class="timer" id="timer">5:00</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            
+            <div class="activity-content" id="activityContent">
+                <!-- Content will be injected here -->
+            </div>
+            
+            <button class="back-btn" onclick="completeActivity()" ontouchstart="">
+                ✓ I'm Done - Back to Main
+            </button>
+        </div>
+    </div>
+
+    <script src="content.js"></script>
+    <script src="dashboard-data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
