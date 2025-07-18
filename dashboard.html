@@ -4,23 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Habit Breaker - Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="dashboard.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Habit Breaker">
 </head>
 <body>
-    <div class="dashboard-container">
+    <!-- SINGLE DASHBOARD INSTANCE -->
+    <div class="dashboard-container" id="mainDashboard">
         <header class="dashboard-header">
             <div class="header-content">
-                <h1>📊 Progress</h1>
+                <h1>📊 Your Progress Dashboard</h1>
                 <nav class="dashboard-nav">
-                    <a href="index.html" class="nav-btn">🏠</a>
-                    <button onclick="exportAllData()" class="nav-btn">📥</button>
-                    <button onclick="resetAllData()" class="nav-btn danger">🗑️</button>
+                    <a href="index.html" class="nav-btn">🏠 Home</a>
+                    <button onclick="exportAllData()" class="nav-btn">📥 Export</button>
+                    <button onclick="resetAllData()" class="nav-btn danger">🗑️ Reset</button>
                 </nav>
             </div>
         </header>
@@ -64,9 +64,7 @@
                 <p class="chart-description">Your patterns over the past year</p>
                 <div class="heatmap-container">
                     <div class="heatmap-months" id="heatmapMonths"></div>
-                    <div class="heatmap-wrapper">
-                        <div class="heatmap-grid" id="heatmapGrid"></div>
-                    </div>
+                    <div class="heatmap-grid" id="heatmapGrid"></div>
                     <div class="heatmap-legend">
                         <span>Less</span>
                         <div class="legend-squares">
@@ -81,48 +79,44 @@
                 </div>
             </section>
 
-            <!-- Charts Grid -->
-            <div class="charts-grid">
-                <!-- Time Distribution Chart -->
-                <section class="chart-section">
-                    <h2>Time Patterns</h2>
-                    <p class="chart-description">When cravings occur</p>
-                    <div class="chart-container">
-                        <canvas id="timeChart"></canvas>
-                    </div>
-                </section>
+            <!-- Time Chart -->
+            <section class="chart-section">
+                <h2>When Do Cravings Occur?</h2>
+                <p class="chart-description">Hourly distribution</p>
+                <div class="chart-container">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </section>
 
-                <!-- Weekly Pattern Chart -->
-                <section class="chart-section">
-                    <h2>Weekly Patterns</h2>
-                    <p class="chart-description">Most challenging days</p>
-                    <div class="chart-container">
-                        <canvas id="weeklyChart"></canvas>
-                    </div>
-                </section>
-            </div>
+            <!-- Weekly Chart -->
+            <section class="chart-section">
+                <h2>Weekly Patterns</h2>
+                <p class="chart-description">Most challenging days</p>
+                <div class="chart-container">
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+            </section>
 
             <!-- Recent Activity -->
             <section class="chart-section">
                 <h2>Recent Activity</h2>
-                <p class="chart-description">Your last 10 sessions</p>
+                <p class="chart-description">Latest sessions</p>
                 <div class="recent-activity" id="recentActivity">
-                    <!-- Recent sessions will be populated here -->
+                    <!-- Content populated by JS -->
                 </div>
             </section>
 
             <!-- Insights -->
             <section class="insights-section">
-                <h2>💡 Insights</h2>
+                <h2>💡 Insights & Patterns</h2>
                 <div class="insights-grid" id="insightsGrid">
-                    <!-- AI-like insights will be generated here -->
+                    <!-- Content populated by JS -->
                 </div>
             </section>
         </main>
     </div>
 
-    <script src="content.js"></script>
-    <script src="dashboard-data.js"></script>
+    <!-- Load dashboard script ONCE at the end -->
     <script src="dashboard.js"></script>
 </body>
 </html>/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
