@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Habit Breaker - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Habit Breaker">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1>📊 Progress</h1>
+                <nav class="dashboard-nav">
+                    <a href="index.html" class="nav-btn">🏠</a>
+                    <button onclick="exportAllData()" class="nav-btn">📥</button>
+                    <button onclick="resetAllData()" class="nav-btn danger">🗑️</button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="dashboard-main">
+            <!-- Summary Stats -->
+            <section class="stats-overview">
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalCravings">0</div>
+                        <div class="stat-label">Cravings Handled</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔥</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="currentStreak">0</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏰</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalMinutes">0</div>
+                        <div class="stat-label">Minutes</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="averageDaily">0</div>
+                        <div class="stat-label">Daily Avg</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Heatmap -->
+            <section class="chart-section">
+                <h2>Activity Heatmap</h2>
+                <p class="chart-description">Your patterns over the past year</p>
+                <div class="heatmap-container">
+                    <div class="heatmap-months" id="heatmapMonths"></div>
+                    <div class="heatmap-wrapper">
+                        <div class="heatmap-grid" id="heatmapGrid"></div>
+                    </div>
+                    <div class="heatmap-legend">
+                        <span>Less</span>
+                        <div class="legend-squares">
+                            <div class="legend-square level-0"></div>
+                            <div class="legend-square level-1"></div>
+                            <div class="legend-square level-2"></div>
+                            <div class="legend-square level-3"></div>
+                            <div class="legend-square level-4"></div>
+                        </div>
+                        <span>More</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Grid -->
+            <div class="charts-grid">
+                <!-- Time Distribution Chart -->
+                <section class="chart-section">
+                    <h2>Time Patterns</h2>
+                    <p class="chart-description">When cravings occur</p>
+                    <div class="chart-container">
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Weekly Pattern Chart -->
+                <section class="chart-section">
+                    <h2>Weekly Patterns</h2>
+                    <p class="chart-description">Most challenging days</p>
+                    <div class="chart-container">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Recent Activity -->
+            <section class="chart-section">
+                <h2>Recent Activity</h2>
+                <p class="chart-description">Your last 10 sessions</p>
+                <div class="recent-activity" id="recentActivity">
+                    <!-- Recent sessions will be populated here -->
+                </div>
+            </section>
+
+            <!-- Insights -->
+            <section class="insights-section">
+                <h2>💡 Insights</h2>
+                <div class="insights-grid" id="insightsGrid">
+                    <!-- AI-like insights will be generated here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="content.js"></script>
+    <script src="dashboard-data.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1>📊 Your Progress Dashboard</h1>
+                <nav class="dashboard-nav">
+                    <a href="index.html" class="nav-btn">🏠 Home</a>
+                    <button onclick="exportAllData()" class="nav-btn">📥 Export Data</button>
+                    <button onclick="resetAllData()" class="nav-btn danger">🗑️ Reset</button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="dashboard-main">
+            <!-- Summary Stats -->
+            <section class="stats-overview">
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalCravings">0</div>
+                        <div class="stat-label">Total Cravings Handled</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔥</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="currentStreak">0</div>
+                        <div class="stat-label">Current Streak (Days)</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏰</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalMinutes">0</div>
+                        <div class="stat-label">Minutes Practiced</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="averageDaily">0</div>
+                        <div class="stat-label">Avg Cravings/Day</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Heatmap -->
+            <section class="chart-section">
+                <h2>Activity Heatmap</h2>
+                <p class="chart-description">Your craving patterns over the past year - darker squares mean more cravings handled</p>
+                <div class="heatmap-container">
+                    <div class="heatmap-months" id="heatmapMonths"></div>
+                    <div class="heatmap-grid" id="heatmapGrid"></div>
+                    <div class="heatmap-legend">
+                        <span>Less</span>
+                        <div class="legend-squares">
+                            <div class="legend-square level-0"></div>
+                            <div class="legend-square level-1"></div>
+                            <div class="legend-square level-2"></div>
+                            <div class="legend-square level-3"></div>
+                            <div class="legend-square level-4"></div>
+                        </div>
+                        <span>More</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Time Distribution Chart -->
+            <section class="chart-section">
+                <h2>When Do Cravings Occur?</h2>
+                <p class="chart-description">Distribution of cravings throughout the day</p>
+                <div class="chart-container">
+                    <canvas id="timeChart" width="400" height="200"></canvas>
+                </div>
+            </section>
+
+            <!-- Weekly Pattern Chart -->
+            <section class="chart-section">
+                <h2>Weekly Patterns</h2>
+                <p class="chart-description">Which days of the week are most challenging?</p>
+                <div class="chart-container">
+                    <canvas id="weeklyChart" width="400" height="200"></canvas>
+                </div>
+            </section>
+
+            <!-- Recent Activity -->
+            <section class="chart-section">
+                <h2>Recent Activity</h2>
+                <p class="chart-description">Your last 10 sessions</p>
+                <div class="recent-activity" id="recentActivity">
+                    <!-- Recent sessions will be populated here -->
+                </div>
+            </section>
+
+            <!-- Insights -->
+            <section class="insights-section">
+                <h2>💡 Insights & Patterns</h2>
+                <div class="insights-grid" id="insightsGrid">
+                    <!-- AI-like insights will be generated here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="content.js"></script>
+    <script src="dashboard-data.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
