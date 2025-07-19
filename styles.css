@@ -6,9 +6,15 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+html {
+    height: 100%;
+    height: -webkit-fill-available; /* iOS Safari fix */
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: fixed; /* Prevents background from scrolling */
     min-height: 100vh;
     min-height: -webkit-fill-available; /* iOS Safari fix */
     display: flex;
@@ -19,8 +25,13 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-html {
-    height: -webkit-fill-available; /* iOS Safari fix */
+/* Alternative approach for better mobile support */
+@supports not (background-attachment: fixed) {
+    body {
+        background-attachment: local;
+        background-size: 100% 100vh;
+        background-repeat: no-repeat;
+    }
 }
 
 /* Container */
@@ -268,13 +279,15 @@ html {
 @media (max-width: 768px) {
     body {
         padding: 5px;
+        align-items: flex-start; /* Allow content to flow naturally on mobile */
+        padding-top: 20px;
     }
     
     .container {
         padding: 20px;
         border-radius: 15px;
-        min-height: calc(100vh - 10px);
-        min-height: calc(-webkit-fill-available - 10px);
+        min-height: auto; /* Let content determine height on mobile */
+        margin-bottom: 20px;
     }
     
     .main-nav {
@@ -393,8 +406,13 @@ html {
 
 /* Landscape mobile devices */
 @media (max-height: 500px) and (orientation: landscape) {
+    body {
+        align-items: flex-start;
+        padding-top: 10px;
+    }
+    
     .container {
-        min-height: calc(100vh - 10px);
+        min-height: auto;
         padding: 15px;
     }
     
