@@ -1,312 +1,519 @@
-// Prevent multiple script loading
-if (typeof window.dashboardScriptLoaded !== 'undefined') {
-    console.log('Dashboard script already loaded, skipping...');
-} else {
-    window.dashboardScriptLoaded = true;
+// Prevent any script duplication
+(function() {
+    'use strict';
+    
+    // Check if dashboard is already loaded
+    if (window.DASHBOARD_LOADED) {
+        console.log('Dashboard already loaded, preventing duplicate');
+        return;
+    }
+    window.DASHBOARD_LOADED = true;
 
-    // Dashboard main functionality
+    // Simple Dashboard Class
     class Dashboard {
         constructor() {
-            // Prevent multiple initialization
             if (window.dashboardInstance) {
-                console.warn('Dashboard already initialized');
                 return window.dashboardInstance;
             }
             
-            this.data = this.createDataManager();
-            this.charts = {};
-            
-            // Mark as initialized
             window.dashboardInstance = this;
-            
+            this.charts = {};
+            this.data = this.createDataManager();
             this.init();
         }
         
         createDataManager() {
-            // Create a simple data manager if DashboardData class doesn't exist
-            if (typeof DashboardData === 'undefined') {
-                console.warn('DashboardData class not found, using fallback');
-                return {
-                    sessionCount: parseInt(localStorage.getItem('sessionCount') || '0'),
-                    totalMinutes: parseInt(localStorage.getItem('totalMinutes') || '0'),
-                    streakDays: parseInt(localStorage.getItem('streakDays') || '0'),
-                    sessions: JSON.parse(localStorage.getItem('cravingSessions') || '[]'),
-                    
-                    getAverageSessionsPerDay: () => '0',
-                    getYearlyHeatmapData: () => ({}),
-                    getHourlyDistribution: () => new Array(24).fill(0),
-                    getWeeklyDistribution: () => ({
-                        labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-                        data: new Array(7).fill(0)
-                    }),
-                    getRecentSessions: () => [],
-                    getInsights: () => [{
-                        title: "Getting Started",
-                        text: "Start using the app to see your progress here!"
-                    }],
-                    generateSampleData: function() {
-                        // Generate sample data
-                        const sampleSessions = [];
-                        const now = new Date();
-                        
-                        for (let i = 30; i >= 0; i--) {
-                            const date = new Date(now);
-                            date.setDate(date.getDate() - i);
-                            
-                            const sessionsToday = Math.floor(Math.random() * 4);
-                            for (let j = 0; j < sessionsToday; j++) {
-                                const hour = 10 + Math.floor(Math.random() * 10);
-                                const sessionDate = new Date(date);
-                                sessionDate.setHours(hour, Math.floor(Math.random() * 60), 0, 0);
-                                
-                                sampleSessions.push({
-                                    id: Date.now() + Math.random(),
-                                    timestamp: sessionDate.toISOString(),
-                                    date: sessionDate.toDateString(),
-                                    hour: sessionDate.getHours(),
-                                    dayOfWeek: sessionDate.getDay(),
-                                    completed: true
-                                });
-                            }
+            return {
+                sessionCount: parseInt(localStorage.getItem('sessionCount') || '0'),
+                totalMinutes: parseInt(localStorage.getItem('totalMinutes') || '0'),
+                streakDays: parseInt(localStorage.getItem('streakDays') || '0'),
+                sessions: JSON.parse(localStorage.getItem('cravingSessions') || '[]'),
+                
+                getAverageSessionsPerDay() { 
+                    if (this.sessions.length === 0) return '0';
+                    const firstSession = new Date(this.sessions[0].timestamp);
+                    const lastSession = new Date(this.sessions[this.sessions.length - 1].timestamp);
+                    const daysDiff = Math.max(1, Math.ceil((lastSession - firstSession) / (1000 * 60 * 60 * 24)));
+                    return (this.sessions.length / daysDiff).toFixed(1);
+                },
+                
+                getYearlyHeatmapData() { 
+                    const data = {};
+                    this.sessions.forEach(session => {
+                        data[session.date] = (data[session.date] || 0) + 1;
+                    });
+                    return data;
+                },
+                
+                getHourlyDistribution() { 
+                    const hours = new Array(24).fill(0);
+                    this.sessions.forEach(s => {
+                        if (s.hour >= 0 && s.hour < 24) {
+                            hours[s.hour]++;
                         }
+                    });
+                    return hours;
+                },
+                
+                getWeeklyDistribution() { 
+                    const days = new Array(7).fill(0);
+                    this.sessions.forEach(s => {
+                        if (s.dayOfWeek >= 0 && s.dayOfWeek < 7) {
+                            days[s.dayOfWeek]++;
+                        }
+                    });
+                    return {
+                        labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                        data: days
+                    };
+                },
+                
+                getRecentSessions() { 
+                    return this.sessions.slice(-10).reverse().map(session => ({
+                        ...session,
+                        timeAgo: this.getTimeAgo(new Date(session.timestamp))
+                    }));
+                },
+                
+                getInsights() { 
+                    if (this.sessions.length === 0) {
+                        return [{
+                            title: "Getting Started",
+                            text: "Click 'Load Sample Data' to see your dashboard in action!"
+                        }];
+                    }
+                    
+                    const insights = [];
+                    const hourly = this.getHourlyDistribution();
+                    const weekly = this.getWeeklyDistribution();
+                    
+                    // Peak hour insight
+                    const peakHour = hourly.indexOf(Math.max(...hourly));
+                    if (peakHour !== -1 && hourly[peakHour] > 0) {
+                        const hourStr = peakHour === 0 ? "midnight" : 
+                                       peakHour === 12 ? "noon" :
+                                       peakHour < 12 ? `${peakHour} AM` : `${peakHour - 12} PM`;
+                        insights.push({
+                            title: "Peak Craving Time",
+                            text: `Most of your cravings happen around ${hourStr}. Consider planning a healthy activity during this time.`
+                        });
+                    }
+                    
+                    // Day pattern insight
+                    const maxDayIndex = weekly.data.indexOf(Math.max(...weekly.data));
+                    if (weekly.data[maxDayIndex] > 0) {
+                        insights.push({
+                            title: "Challenging Day",
+                            text: `${weekly.labels[maxDayIndex]}days tend to be your most challenging. Extra self-care on these days could help.`
+                        });
+                    }
+                    
+                    // Progress insight
+                    insights.push({
+                        title: "Building Awareness",
+                        text: `You've handled ${this.sessionCount} cravings successfully. Each pause builds stronger neural pathways for conscious choice.`
+                    });
+                    
+                    // Streak insight
+                    if (this.streakDays >= 7) {
+                        insights.push({
+                            title: "Momentum Building",
+                            text: `Your ${this.streakDays}-day streak shows real commitment. You're rewiring your brain for healthier habits!`
+                        });
+                    }
+                    
+                    return insights;
+                },
+                
+                getTimeAgo(date) {
+                    const now = new Date();
+                    const diff = now - date;
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor(diff / (1000 * 60));
+                    
+                    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+                    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+                    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+                    return 'Just now';
+                },
+                
+                generateSampleData() {
+                    console.log('Generating sample data...');
+                    const sessions = [];
+                    const now = new Date();
+                    
+                    // Generate 90 days of sample data
+                    for (let i = 90; i >= 0; i--) {
+                        const date = new Date(now);
+                        date.setDate(date.getDate() - i);
                         
-                        this.sessions = sampleSessions;
-                        this.sessionCount = sampleSessions.length;
-                        this.totalMinutes = sampleSessions.length * 5;
-                        this.streakDays = 7;
+                        // Random number of sessions per day (0-4), with some days having no sessions
+                        const sessionsToday = Math.random() < 0.7 ? Math.floor(Math.random() * 4) + 1 : 0;
                         
-                        localStorage.setItem('sessionCount', this.sessionCount.toString());
-                        localStorage.setItem('totalMinutes', this.totalMinutes.toString());
-                        localStorage.setItem('streakDays', this.streakDays.toString());
-                        localStorage.setItem('cravingSessions', JSON.stringify(this.sessions));
-                        
-                        // Update methods after generating data
-                        this.getAverageSessionsPerDay = () => (this.sessionCount / 30).toFixed(1);
-                        this.getYearlyHeatmapData = () => {
-                            const data = {};
-                            this.sessions.forEach(session => {
-                                data[session.date] = (data[session.date] || 0) + 1;
-                            });
-                            return data;
-                        };
-                        this.getHourlyDistribution = () => {
-                            const hourCounts = new Array(24).fill(0);
-                            this.sessions.forEach(session => {
-                                hourCounts[session.hour]++;
-                            });
-                            return hourCounts;
-                        };
-                        this.getWeeklyDistribution = () => {
-                            const dayCounts = new Array(7).fill(0);
-                            this.sessions.forEach(session => {
-                                dayCounts[session.dayOfWeek]++;
-                            });
-                            return {
-                                labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-                                data: dayCounts
-                            };
-                        };
-                        this.getRecentSessions = (limit = 10) => {
-                            return this.sessions.slice(-limit).reverse().map(session => ({
-                                ...session,
-                                timeAgo: this.getTimeAgo(new Date(session.timestamp))
-                            }));
-                        };
-                        this.getInsights = () => {
-                            const insights = [];
-                            const hourlyData = this.getHourlyDistribution();
-                            const peakHour = hourlyData.indexOf(Math.max(...hourlyData));
-                            
-                            if (peakHour !== -1 && hourlyData[peakHour] > 0) {
-                                const hourString = peakHour === 0 ? "midnight" : 
-                                                 peakHour === 12 ? "noon" :
-                                                 peakHour < 12 ? `${peakHour} AM` : `${peakHour - 12} PM`;
-                                insights.push({
-                                    title: "Peak Craving Time",
-                                    text: `Most of your cravings happen around ${hourString}. Consider planning a healthy activity during this time.`
-                                });
+                        for (let j = 0; j < sessionsToday; j++) {
+                            // Weight certain hours more heavily
+                            let hour;
+                            const rand = Math.random();
+                            if (rand < 0.3) {
+                                hour = 10 + Math.floor(Math.random() * 4); // 10 AM - 2 PM
+                            } else if (rand < 0.6) {
+                                hour = 15 + Math.floor(Math.random() * 4); // 3 PM - 7 PM
+                            } else {
+                                hour = 20 + Math.floor(Math.random() * 3); // 8 PM - 11 PM
                             }
                             
-                            insights.push({
-                                title: "Great Progress!",
-                                text: `You've handled ${this.sessionCount} cravings successfully. Each time you pause instead of react, you're building stronger habits.`
+                            const sessionDate = new Date(date);
+                            sessionDate.setHours(hour, Math.floor(Math.random() * 60), 0, 0);
+                            
+                            sessions.push({
+                                id: Date.now() + Math.random(),
+                                timestamp: sessionDate.toISOString(),
+                                date: sessionDate.toDateString(),
+                                hour: sessionDate.getHours(),
+                                dayOfWeek: sessionDate.getDay(),
+                                completed: true
                             });
-                            
-                            return insights;
-                        };
-                        this.getTimeAgo = (date) => {
-                            const now = new Date();
-                            const diffMs = now - date;
-                            const diffMins = Math.floor(diffMs / (1000 * 60));
-                            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                            
-                            if (diffMins < 60) return `${diffMins} minutes ago`;
-                            if (diffHours < 24) return `${diffHours} hours ago`;
-                            if (diffDays === 1) return "yesterday";
-                            return `${diffDays} days ago`;
-                        };
-                    },
-                    exportData: function() {
-                        const data = {
-                            sessions: this.sessions,
-                            stats: {
-                                sessionCount: this.sessionCount,
-                                totalMinutes: this.totalMinutes,
-                                streakDays: this.streakDays
-                            },
-                            exportDate: new Date().toISOString()
-                        };
-                        
-                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `habit-breaker-data-${new Date().toISOString().split('T')[0]}.json`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                    },
-                    resetAllData: function() {
-                        if (confirm('Are you sure you want to delete all your data? This cannot be undone.')) {
-                            localStorage.clear();
-                            location.reload();
                         }
                     }
-                };
-            }
-            
-            return new DashboardData();
+                    
+                    // Update the data manager
+                    this.sessions = sessions;
+                    this.sessionCount = sessions.length;
+                    this.totalMinutes = sessions.length * 5;
+                    this.streakDays = 15;
+                    
+                    // Save to localStorage
+                    localStorage.setItem('sessionCount', this.sessionCount.toString());
+                    localStorage.setItem('totalMinutes', this.totalMinutes.toString());
+                    localStorage.setItem('streakDays', this.streakDays.toString());
+                    localStorage.setItem('cravingSessions', JSON.stringify(this.sessions));
+                    
+                    console.log(`Generated ${sessions.length} sessions`);
+                    console.log('Sample session:', sessions[0]);
+                    console.log('Heatmap data sample:', this.getYearlyHeatmapData());
+                },
+                
+                exportData() {
+                    const data = {
+                        sessions: this.sessions,
+                        sessionCount: this.sessionCount,
+                        totalMinutes: this.totalMinutes,
+                        streakDays: this.streakDays,
+                        exportDate: new Date().toISOString(),
+                        version: '1.0'
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `habit-breaker-data-${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+                
+                resetAllData() {
+                    if (confirm('Are you sure you want to delete all your data? This cannot be undone.')) {
+                        localStorage.clear();
+                        location.reload();
+                    }
+                }
+            };
         }
         
         init() {
-            // Clear any existing content first
-            this.clearExistingContent();
-            
             this.updateStats();
             this.createHeatmap();
-            this.createTimeChart();
-            this.createWeeklyChart();
+            this.createCharts();
             this.updateRecentActivity();
             this.updateInsights();
-            
-            // Add sample data button for demo
             this.addDemoButton();
         }
         
-        clearExistingContent() {
-            const containers = ['heatmapGrid', 'heatmapMonths', 'recentActivity', 'insightsGrid'];
-            containers.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) element.innerHTML = '';
-            });
-        }
-        
         updateStats() {
-            const elements = {
-                totalCravings: this.data.sessionCount,
-                currentStreak: this.data.streakDays,
-                totalMinutes: this.data.totalMinutes,
-                averageDaily: this.data.getAverageSessionsPerDay()
+            const updates = {
+                'totalCravings': this.data.sessionCount,
+                'currentStreak': this.data.streakDays,
+                'totalMinutes': this.data.totalMinutes,
+                'averageDaily': this.data.getAverageSessionsPerDay()
             };
             
-            Object.entries(elements).forEach(([id, value]) => {
+            Object.entries(updates).forEach(([id, value]) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = value;
             });
         }
         
         createHeatmap() {
-            const heatmapData = this.data.getYearlyHeatmapData();
             const container = document.getElementById('heatmapGrid');
             const monthsContainer = document.getElementById('heatmapMonths');
             
             if (!container || !monthsContainer) return;
             
+            const heatmapData = this.data.getYearlyHeatmapData();
+            console.log('Heatmap data sample:', Object.keys(heatmapData).slice(0, 5));
+            
+            // Clear containers
             container.innerHTML = '';
             monthsContainer.innerHTML = '';
             
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const now = new Date();
-            const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+            // Calculate date range (last 52 weeks)
+            const today = new Date();
+            console.log('Today:', today.toDateString());
+            
+            // Start from exactly 52 weeks ago (364 days)
+            const startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 364);
+            
+            // Find the Sunday before or on this date
+            const dayOfWeek = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            startDate.setDate(startDate.getDate() - dayOfWeek);
+            
+            console.log('Start date (Sunday):', startDate.toDateString());
             
             // Create month labels
-            for (let i = 0; i < 12; i++) {
-                const monthDiv = document.createElement('div');
-                monthDiv.className = 'heatmap-month';
-                monthDiv.textContent = months[(oneYearAgo.getMonth() + i) % 12];
-                monthsContainer.appendChild(monthDiv);
+            const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            const totalWeeks = 53;
+            
+            // Build the grid and track months
+            const monthPositions = [];
+            const weeks = [];
+            let currentDate = new Date(startDate);
+            let lastMonth = -1;
+            const maxValue = Math.max(...Object.values(heatmapData), 1);
+            
+            for (let week = 0; week < totalWeeks; week++) {
+                const weekData = [];
+                
+                // Check the first day of this week to see if we entered a new month
+                const firstDayOfWeek = new Date(currentDate);
+                const currentMonth = firstDayOfWeek.getMonth();
+                
+                // If this is a new month, record its position
+                if (currentMonth !== lastMonth) {
+                    monthPositions.push({
+                        name: monthLabels[currentMonth],
+                        weekIndex: week,
+                        date: firstDayOfWeek.toDateString()
+                    });
+                    console.log(`Month ${monthLabels[currentMonth]} starts at week ${week} (${firstDayOfWeek.toDateString()})`);
+                    lastMonth = currentMonth;
+                }
+                
+                // Create 7 days for this week (Sunday to Saturday)
+                for (let day = 0; day < 7; day++) {
+                    const dayData = {
+                        date: new Date(currentDate),
+                        dateString: currentDate.toDateString(),
+                        isHidden: currentDate > today
+                    };
+                    
+                    if (!dayData.isHidden) {
+                        const sessionCount = heatmapData[dayData.dateString] || 0;
+                        dayData.sessionCount = sessionCount;
+                        dayData.level = sessionCount === 0 ? 0 : Math.min(4, Math.ceil((sessionCount / maxValue) * 4));
+                        
+                        const options = { weekday: 'short', month: 'short', day: 'numeric' };
+                        dayData.formattedDate = currentDate.toLocaleDateString('en-US', options);
+                    }
+                    
+                    weekData.push(dayData);
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                weeks.push(weekData);
             }
             
-            // Create day squares
-            const maxSessions = Math.max(...Object.values(heatmapData), 1);
-            for (let d = new Date(oneYearAgo); d <= now; d.setDate(d.getDate() + 1)) {
-                const dayDiv = document.createElement('div');
-                dayDiv.className = 'heatmap-day';
+            console.log('Month positions:', monthPositions);
+            
+            // Create month labels with exact positioning
+            monthPositions.forEach(month => {
+                const monthDiv = document.createElement('div');
+                monthDiv.className = 'heatmap-month';
+                monthDiv.textContent = month.name;
                 
-                const dateString = d.toDateString();
-                const sessionCount = heatmapData[dateString] || 0;
-                const level = sessionCount === 0 ? 0 : Math.min(4, Math.ceil((sessionCount / maxSessions) * 4));
-                dayDiv.classList.add(`level-${level}`);
+                // Calculate exact position based on the flex layout
+                // Each week gets equal space, so position = (weekIndex / totalWeeks) * 100%
+                const leftPercentage = (month.weekIndex / totalWeeks) * 100;
+                monthDiv.style.left = `${leftPercentage}%`;
                 
-                dayDiv.addEventListener('mouseenter', (e) => this.showTooltip(e, dateString, sessionCount));
-                dayDiv.addEventListener('mouseleave', () => this.hideTooltip());
+                console.log(`Placing ${month.name} at ${leftPercentage}% (week ${month.weekIndex})`);
+                monthsContainer.appendChild(monthDiv);
+            });
+            
+            // Create the grid using the pre-calculated data
+            weeks.forEach((weekData, weekIndex) => {
+                const weekDiv = document.createElement('div');
+                weekDiv.className = 'heatmap-week';
                 
-                container.appendChild(dayDiv);
+                weekData.forEach((dayData, dayIndex) => {
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = 'heatmap-day';
+                    
+                    if (dayData.isHidden) {
+                        dayDiv.style.visibility = 'hidden';
+                    } else {
+                        dayDiv.classList.add(`level-${dayData.level}`);
+                        dayDiv.title = `${dayData.formattedDate}: ${dayData.sessionCount} session${dayData.sessionCount !== 1 ? 's' : ''}`;
+                        
+                        // Add hover events
+                        dayDiv.addEventListener('mouseenter', (e) => {
+                            this.showTooltip(e, dayData.formattedDate, dayData.sessionCount);
+                        });
+                        dayDiv.addEventListener('mouseleave', () => {
+                            this.hideTooltip();
+                        });
+                        
+                        // Log some sample dates for debugging
+                        if (weekIndex % 10 === 0 && dayIndex === 0) {
+                            console.log(`Week ${weekIndex}, Day ${dayIndex}: ${dayData.formattedDate}`);
+                        }
+                    }
+                    
+                    weekDiv.appendChild(dayDiv);
+                });
+                
+                container.appendChild(weekDiv);
+            });
+        }
+        
+        showTooltip(event, dateString, count) {
+            this.hideTooltip(); // Remove any existing tooltip
+            
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.textContent = `${dateString}: ${count} session${count !== 1 ? 's' : ''}`;
+            document.body.appendChild(tooltip);
+            
+            const rect = event.target.getBoundingClientRect();
+            tooltip.style.left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
+            tooltip.style.top = rect.top - tooltip.offsetHeight - 8 + 'px';
+            
+            this.currentTooltip = tooltip;
+        }
+        
+        hideTooltip() {
+            if (this.currentTooltip) {
+                this.currentTooltip.remove();
+                this.currentTooltip = null;
             }
         }
         
-        createTimeChart() {
-            const ctx = document.getElementById('timeChart');
-            if (!ctx || typeof Chart === 'undefined') return;
+        createCharts() {
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js not loaded, skipping charts');
+                return;
+            }
             
-            if (this.charts.timeChart) this.charts.timeChart.destroy();
+            this.createTimeChart();
+            this.createWeeklyChart();
+        }
+        
+        createTimeChart() {
+            const canvas = document.getElementById('timeChart');
+            if (!canvas) return;
+            
+            if (this.charts.timeChart) {
+                this.charts.timeChart.destroy();
+            }
             
             const hourlyData = this.data.getHourlyDistribution();
-            const labels = Array.from({length: 24}, (_, i) => 
-                i === 0 ? '12 AM' : i === 12 ? '12 PM' : i < 12 ? `${i} AM` : `${i - 12} PM`
-            );
+            const labels = Array.from({length: 24}, (_, i) => {
+                if (i === 0) return '12a';
+                if (i === 12) return '12p';
+                if (i < 12) return `${i}a`;
+                return `${i-12}p`;
+            });
             
-            this.charts.timeChart = new Chart(ctx, {
+            this.charts.timeChart = new Chart(canvas, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Cravings',
                         data: hourlyData,
                         backgroundColor: 'rgba(102, 126, 234, 0.6)',
                         borderColor: 'rgba(102, 126, 234, 1)',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        borderRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const hour = context[0].dataIndex;
+                                    if (hour === 0) return '12:00 AM';
+                                    if (hour === 12) return '12:00 PM';
+                                    if (hour < 12) return `${hour}:00 AM`;
+                                    return `${hour - 12}:00 PM`;
+                                },
+                                label: function(context) {
+                                    const count = context.parsed.y;
+                                    return `${count} craving${count !== 1 ? 's' : ''}`;
+                                }
+                            }
+                        }
+                    },
                     scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } },
-                        x: { ticks: { maxRotation: 45 } }
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { 
+                                stepSize: 1,
+                                callback: function(value) {
+                                    return Number.isInteger(value) ? value : '';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Number of Cravings'
+                            }
+                        },
+                        x: { 
+                            ticks: { maxRotation: 0 },
+                            title: {
+                                display: true,
+                                text: 'Time of Day'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     }
                 }
             });
         }
         
         createWeeklyChart() {
-            const ctx = document.getElementById('weeklyChart');
-            if (!ctx || typeof Chart === 'undefined') return;
+            const canvas = document.getElementById('weeklyChart');
+            if (!canvas) return;
             
-            if (this.charts.weeklyChart) this.charts.weeklyChart.destroy();
+            if (this.charts.weeklyChart) {
+                this.charts.weeklyChart.destroy();
+            }
             
             const weeklyData = this.data.getWeeklyDistribution();
             
-            this.charts.weeklyChart = new Chart(ctx, {
+            this.charts.weeklyChart = new Chart(canvas, {
                 type: 'doughnut',
                 data: {
                     labels: weeklyData.labels,
                     datasets: [{
                         data: weeklyData.data,
-                        backgroundColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'],
+                        backgroundColor: [
+                            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 
+                            '#FFEAA7', '#DDA0DD', '#98D8C8'
+                        ],
                         borderWidth: 2,
-                        borderColor: '#fff'
+                        borderColor: '#fff',
+                        hoverBorderWidth: 3
                     }]
                 },
                 options: {
@@ -315,9 +522,25 @@ if (typeof window.dashboardScriptLoaded !== 'undefined') {
                     plugins: {
                         legend: {
                             position: 'bottom',
-                            labels: { padding: 20, usePointStyle: true }
+                            labels: { 
+                                padding: 15, 
+                                usePointStyle: true,
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const day = context.label;
+                                    const count = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                                    return `${day}: ${count} cravings (${percentage}%)`;
+                                }
+                            }
                         }
-                    }
+                    },
+                    cutout: '50%'
                 }
             });
         }
@@ -326,9 +549,9 @@ if (typeof window.dashboardScriptLoaded !== 'undefined') {
             const container = document.getElementById('recentActivity');
             if (!container) return;
             
-            const recentSessions = this.data.getRecentSessions(10);
+            const sessions = this.data.getRecentSessions();
             
-            if (recentSessions.length === 0) {
+            if (sessions.length === 0) {
                 container.innerHTML = `
                     <div class="activity-item">
                         <div class="activity-info">
@@ -343,9 +566,16 @@ if (typeof window.dashboardScriptLoaded !== 'undefined') {
                 return;
             }
             
-            container.innerHTML = recentSessions.map(session => {
+            container.innerHTML = sessions.map(session => {
                 const sessionDate = new Date(session.timestamp);
-                const timeString = sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const time = sessionDate.toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                const date = sessionDate.toLocaleDateString([], {
+                    month: 'short',
+                    day: 'numeric'
+                });
                 
                 return `
                     <div class="activity-item">
@@ -353,7 +583,7 @@ if (typeof window.dashboardScriptLoaded !== 'undefined') {
                             <div class="activity-icon">✅</div>
                             <div class="activity-details">
                                 <h4>Craving handled successfully</h4>
-                                <p>5-minute session completed at ${timeString}</p>
+                                <p>5-minute session completed at ${time} on ${date}</p>
                             </div>
                         </div>
                         <div class="activity-time">${session.timeAgo}</div>
@@ -375,96 +605,66 @@ if (typeof window.dashboardScriptLoaded !== 'undefined') {
             `).join('');
         }
         
-        showTooltip(event, dateString, count) {
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tooltip';
-            tooltip.textContent = `${dateString}: ${count} session${count !== 1 ? 's' : ''}`;
-            document.body.appendChild(tooltip);
-            
-            const rect = event.target.getBoundingClientRect();
-            tooltip.style.left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
-            tooltip.style.top = rect.top - tooltip.offsetHeight - 5 + 'px';
-            this.currentTooltip = tooltip;
-        }
-        
-        hideTooltip() {
-            if (this.currentTooltip) {
-                this.currentTooltip.remove();
-                this.currentTooltip = null;
-            }
-        }
-        
         addDemoButton() {
-            if (this.data.sessionCount > 0) return;
-            
+            // Always show the demo button for testing
             const nav = document.querySelector('.dashboard-nav');
             if (!nav || nav.querySelector('.demo-btn')) return;
             
-            const demoButton = document.createElement('button');
-            demoButton.textContent = '🎮 Load Sample Data';
-            demoButton.className = 'nav-btn demo-btn';
-            demoButton.onclick = () => {
+            const btn = document.createElement('button');
+            btn.textContent = '🎮 Load Sample Data';
+            btn.className = 'nav-btn demo-btn';
+            btn.onclick = () => {
+                console.log('Demo button clicked');
                 this.data.generateSampleData();
-                location.reload();
+                // Refresh the dashboard immediately instead of reloading
+                this.refresh();
             };
-            nav.appendChild(demoButton);
+            nav.appendChild(btn);
+        }
+        
+        refresh() {
+            this.data = this.createDataManager();
+            this.updateStats();
+            this.createHeatmap();
+            this.createCharts();
+            this.updateRecentActivity();
+            this.updateInsights();
         }
     }
 
     // Global functions for buttons
     window.exportAllData = function() {
-        if (window.dashboardInstance && window.dashboardInstance.data) {
+        if (window.dashboardInstance) {
             window.dashboardInstance.data.exportData();
         }
     };
 
     window.resetAllData = function() {
-        if (window.dashboardInstance && window.dashboardInstance.data) {
+        if (window.dashboardInstance) {
             window.dashboardInstance.data.resetAllData();
         }
     };
 
-    // Initialize when DOM is ready
+    // Initialize only once when DOM is ready
+    function initDashboard() {
+        if (window.dashboardInstance) {
+            console.log('Dashboard instance already exists');
+            return;
+        }
+        
+        try {
+            new Dashboard();
+            console.log('Dashboard initialized successfully');
+        } catch (error) {
+            console.error('Dashboard initialization error:', error);
+        }
+    }
+
+    // Wait for DOM
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initDashboard);
     } else {
         initDashboard();
     }
 
-    function initDashboard() {
-        if (window.dashboardInstance) {
-            console.log('Dashboard already initialized');
-            return;
-        }
-        
-        try {
-            window.dashboard = new Dashboard();
-            console.log('Dashboard loaded! Access via window.dashboard');
-        } catch (error) {
-            console.error('Error initializing dashboard:', error);
-        }
-    }
-}boardInitialized = false;
-
-// Initialize dashboard when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    if (dashboardInitialized) {
-        console.warn('Dashboard already initialized, skipping...');
-        return;
-    }
-    
-    // Check if Chart.js is loaded
-    if (typeof Chart === 'undefined') {
-        console.error('Chart.js not loaded. Please check the CDN link.');
-        return;
-    }
-    
-    try {
-        dashboardInitialized = true;
-        window.dashboard = new Dashboard();
-        console.log('Dashboard loaded! Access via window.dashboard');
-    } catch (error) {
-        console.error('Error initializing dashboard:', error);
-        dashboardInitialized = false;
-    }
-});
+})();
